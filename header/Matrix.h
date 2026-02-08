@@ -9,6 +9,7 @@ private:
 
 public:
     Matrix(int rows, int cols, bool rand = false);
+    Matrix(int rows, int cols, const std::vector <double> &values);
     double &operator()(int row, int col);
     const double &operator()(int row, int col) const;
     Matrix operator+(const Matrix &other) const;
