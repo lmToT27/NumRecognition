@@ -15,6 +15,12 @@ Matrix::Matrix(int rows, int cols, bool rand) {
     }
 }
 
+Matrix::Matrix(int rows, int cols, const std::vector <double> &values) {
+    this -> rows = rows;
+    this -> cols = cols;
+    data = values;
+}
+
 double &Matrix::operator()(int row, int col) {
     return this -> data[row * cols + col];
 }
