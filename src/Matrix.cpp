@@ -3,16 +3,14 @@
 #include <cstdlib>
 #include <ctime>
 
-Matrix::Matrix(int rows, int cols, bool rand = false) {
+Matrix::Matrix(int rows, int cols, bool rand) {
     this -> rows = rows;
     this -> cols = cols;
     data.resize(rows * cols);
-    if (rand) {
-        std::srand(std::time(0));
-        for (int i = 0; i < rows; i++) {
-            for (int j = 0; j < cols; j++) {
-                (*this)(i, j) = static_cast <double> (std::rand()) / RAND_MAX;
-            }
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            if (rand) (*this)(i, j) = static_cast <double> (std::rand()) / RAND_MAX;
+            else (*this)(i, j) = 0.0;
         }
     }
 }
