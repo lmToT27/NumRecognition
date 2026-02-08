@@ -18,6 +18,8 @@ public:
     Matrix HadamardMul(const Matrix &other) const;
     Matrix ScalarMul(double scalar) const;
     Matrix Transpose() const;
+    size_t GetRows() const;
+    size_t GetCols() const;
 
     void Print();
 };

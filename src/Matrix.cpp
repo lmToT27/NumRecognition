@@ -99,3 +99,11 @@ void Matrix::Print() {
         std::cout << std::endl;
     }
 }
+
+size_t Matrix::GetRows() const {
+    return rows;
+}
+
+size_t Matrix::GetCols() const {
+    return cols;
+}
