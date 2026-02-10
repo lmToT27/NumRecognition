@@ -40,14 +40,14 @@ void NeuralNetwork::BackPropagate(const Matrix &input, const Matrix &target, dou
         Matrix weight_gradient = prev_activation.Transpose() * delta;
         Matrix bias_gradient = delta;
         
-        weights[layer] = weights[layer] - weight_gradient.ScalarMul(learning_rate);
-        biases[layer] = biases[layer] - bias_gradient.ScalarMul(learning_rate);
-
         if (layer > 0) {
             Matrix prev_derivative = prev_activation;
             prev_derivative.ApplyReLUDerivative();
             delta = (delta * (weights[layer].Transpose())).HadamardMul(prev_derivative);
         }
+        
+        weights[layer] = weights[layer] - weight_gradient.ScalarMul(learning_rate);
+        biases[layer] = biases[layer] - bias_gradient.ScalarMul(learning_rate);
     }
 }
 
