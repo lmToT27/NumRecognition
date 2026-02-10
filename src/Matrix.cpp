@@ -1,8 +1,4 @@
 #include "Matrix.h"
-#include "header/Math.h"
-#include <iostream>
-#include <cstdlib>
-#include <ctime>
 
 Matrix::Matrix(int rows, int cols, bool rand) {
     this -> rows = rows;

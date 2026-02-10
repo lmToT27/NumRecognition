@@ -1,7 +1,10 @@
 #pragma once
 
+#include "Math.h"
 #include <vector>
-
+#include <iostream>
+#include <cstdlib>
+#include <ctime>
 class Matrix {
 private:
     std::vector <double> data;

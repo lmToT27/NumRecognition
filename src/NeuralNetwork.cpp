@@ -1,5 +1,4 @@
 #include "NeuralNetwork.h"
-#include "header/Math.h"
 
 NeuralNetwork::NeuralNetwork(const std::vector <int> &layer_sizes) {
     this -> layer_sizes = layer_sizes;

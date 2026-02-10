@@ -1,5 +1,9 @@
 #pragma once
+
 #include <vector>
+#include <algorithm>
+#include <cmath>
+#include <cstdlib>
 
 double Sigmoid(double x);
 double SigmoidDerivative(double y);

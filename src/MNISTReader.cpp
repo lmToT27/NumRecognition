@@ -1,6 +1,4 @@
 #include "MNISTReader.h"
-#include <fstream>
-#include <cassert>
 
 int ReverseInt(int i) {
     int b0 = i & 0xff;
