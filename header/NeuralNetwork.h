@@ -2,6 +2,9 @@
 
 #include <vector>
 #include "Matrix.h"
+#include <string>
+#include <fstream>
+#include <cassert>
 
 class NeuralNetwork {
 private:
@@ -13,6 +16,7 @@ public:
     NeuralNetwork(const std::vector <int> &layer_sizes);
     Matrix FeedForward(const Matrix &input);
     Matrix FeedForward(const std::vector <double> &input);
-    // Backpropagation and training methods can be added here
     void BackPropagate(const Matrix &input, const Matrix &target, double learning_rate);
+    void SaveModel(const std::string &filepath);
+    void LoadModel(const std::string &filepath);
 };
