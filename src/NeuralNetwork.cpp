@@ -103,6 +103,9 @@ void NeuralNetwork::LoadModel(const std::string &filepath) {
             }
         }
         weights.push_back(w);
+    }
+    for (int i = 0; i < num_layers - 1; i++) {
+        int to = layer_sizes[i + 1];
         Matrix b(1, to);
         for (size_t c = 0; c < to; c++) {
             double val;
