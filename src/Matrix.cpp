@@ -1,4 +1,5 @@
 #include "Matrix.h"
+#include "header/Math.h"
 #include <iostream>
 #include <cstdlib>
 #include <ctime>
@@ -51,11 +52,11 @@ Matrix Matrix::operator*(const Matrix &other) const {
     return res;
 }
 
-Matrix Matrix::operator-() const {
+Matrix Matrix::operator-(const Matrix &other) const {
     Matrix res(rows, cols);
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
-            res(i, j) = -(*this)(i, j);
+            res(i, j) = (*this)(i, j) - other(i, j);
         }
     }
     return res;
@@ -89,6 +90,29 @@ Matrix Matrix::Transpose() const {
         }
     }
     return res;
+}
+
+void Matrix::ApplySigmoid() {
+    for (double &val : data) {
+        val = Sigmoid(val);
+    }
+}
+
+void Matrix::ApplySigmoidDerivative() {
+    for (double &val : data) {
+        val = SigmoidDerivative(val);
+    }
+}
+
+void Matrix::ApplyReLU() {
+    for (double &val : data) {
+        val = ReLU(val);
+    }
+}
+
+void Matrix::ApplySoftmax() {
+    std::vector <double> vec = Softmax(data);
+    data = vec;
 }
 
 void Matrix::Print() {

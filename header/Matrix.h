@@ -14,10 +14,14 @@ public:
     const double &operator()(int row, int col) const;
     Matrix operator+(const Matrix &other) const;
     Matrix operator*(const Matrix &other) const;
-    Matrix operator-() const;
+    Matrix operator-(const Matrix &other) const;
     Matrix HadamardMul(const Matrix &other) const;
     Matrix ScalarMul(double scalar) const;
     Matrix Transpose() const;
+    void ApplySigmoid();
+    void ApplySigmoidDerivative();
+    void ApplyReLU();
+    void ApplySoftmax();
     size_t GetRows() const;
     size_t GetCols() const;
 
