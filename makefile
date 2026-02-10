@@ -1,6 +1,17 @@
+CXX = g++
+INCLUDE = -Isrc/include -Iheader
+LIB = -Lsrc/lib
+
+SRC = $(wildcard src/*.cpp)
+
+# target mặc định
 all:
-	g++ -Isrc/include -Iheader -Lsrc/lib -o main main.cpp src/*.cpp
-run:
-	.\main
+	$(CXX) $(INCLUDE) $(LIB) -o main main.cpp $(SRC)
+
+# ===== build & run theo tên gõ =====
+%:
+	$(CXX) $(INCLUDE) $(LIB) -o $@ $@.cpp $(SRC)
+	.\$@
+
 clean:
-	del main.exe
+	del /f *.exe main
