@@ -30,6 +30,27 @@ const double &Matrix::operator()(int row, int col) const {
     return this -> data[row * cols + col];
 }
 
+Matrix Matrix::operator=(const Matrix &other) {
+    this -> rows = other.rows;
+    this -> cols = other.cols;
+    this -> data = other.data;
+    return *this;
+}
+
+Matrix Matrix::Flatten(int axis) const {
+    if (axis == 0) {
+        Matrix res = *this;
+        res.rows = 1;
+        res.cols = rows * cols;
+        return res;
+    } else {
+        Matrix res = *this;
+        res.rows = rows * cols;
+        res.cols = 1;
+        return res;
+    }
+}
+
 Matrix Matrix::operator+(const Matrix &other) const {
     Matrix res(rows, cols);
     for (int i = 0; i < rows; i++) {
