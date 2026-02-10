@@ -1,4 +1,5 @@
 #include "Matrix.h"
+#include <cassert>
 
 Matrix::Matrix(int rows, int cols, bool rand) {
     this -> rows = rows;
@@ -6,7 +7,7 @@ Matrix::Matrix(int rows, int cols, bool rand) {
     data.resize(rows * cols);
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
-            if (rand) (*this)(i, j) = static_cast <double> (std::rand()) / RAND_MAX;
+            if (rand) (*this)(i, j) = -0.1 + static_cast <double> (std::rand()) / RAND_MAX * 0.2;
             else (*this)(i, j) = 0.0;
         }
     }
@@ -48,6 +49,7 @@ Matrix Matrix::Flatten(int axis) const {
 }
 
 Matrix Matrix::operator+(const Matrix &other) const {
+    assert(rows == other.rows && cols == other.cols && "Matrix dimensions must match for addition.");
     Matrix res(rows, cols);
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
@@ -58,6 +60,7 @@ Matrix Matrix::operator+(const Matrix &other) const {
 }
 
 Matrix Matrix::operator*(const Matrix &other) const {
+    assert(cols == other.rows && "Matrix dimensions are not compatible for multiplication.");
     Matrix res(rows, other.cols);
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < other.cols; j++) {
@@ -70,6 +73,7 @@ Matrix Matrix::operator*(const Matrix &other) const {
 }
 
 Matrix Matrix::operator-(const Matrix &other) const {
+    assert(rows == other.rows && cols == other.cols && "Matrix dimensions must match for subtraction.");
     Matrix res(rows, cols);
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
@@ -80,6 +84,7 @@ Matrix Matrix::operator-(const Matrix &other) const {
 }
 
 Matrix Matrix::HadamardMul(const Matrix &other) const {
+    assert(rows == other.rows && cols == other.cols && "Matrix dimensions must match for Hadamard multiplication.");
     Matrix res(rows, cols);
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
@@ -124,6 +129,12 @@ void Matrix::ApplySigmoidDerivative() {
 void Matrix::ApplyReLU() {
     for (double &val : data) {
         val = ReLU(val);
+    }
+}
+
+void Matrix::ApplyReLUDerivative() {
+    for (double &val : data) {
+        val = ReLUDerivative(val);
     }
 }
 

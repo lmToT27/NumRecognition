@@ -18,7 +18,7 @@ Matrix NeuralNetwork::FeedForward(const Matrix &input) {
     layer_outputs.push_back(res);
     for (int i = 0; i < weights.size(); i++) {
         res = (res * weights[i]) + biases[i];
-        if (i != (int)weights.size() - 1) res.ApplySigmoid();
+        if (i != (int)weights.size() - 1) res.ApplyReLU();
         else res.ApplySoftmax();
         layer_outputs.push_back(res);   
     }
@@ -45,7 +45,7 @@ void NeuralNetwork::BackPropagate(const Matrix &input, const Matrix &target, dou
 
         if (layer > 0) {
             Matrix prev_derivative = prev_activation;
-            prev_derivative.ApplySigmoidDerivative();
+            prev_derivative.ApplyReLUDerivative();
             delta = (delta * (weights[layer].Transpose())).HadamardMul(prev_derivative);
         }
     }

@@ -26,6 +26,7 @@ public:
     void ApplySigmoid();
     void ApplySigmoidDerivative();
     void ApplyReLU();
+    void ApplyReLUDerivative();
     void ApplySoftmax();
     size_t GetRows() const;
     size_t GetCols() const;
