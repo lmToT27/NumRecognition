@@ -39,36 +39,183 @@ $$
 
 ## Loss function
 
-For one-hot targets $y$, the cross-entropy loss is:
+For one-hot targets $y = [0, \dots, 1, \dots, 0]$, the cross-entropy loss is:
 
 $$
-\mathcal{L} = -\sum_i y_i \log(a^L_i)
+\mathcal{L} = -\sum_{i=1}^K y_i \log(a^L_i)
 $$
 
-With softmax, the output-layer error simplifies to:
+Since only one element $y_c = 1$ (correct class), this becomes:
 
 $$
-\delta^L = a^L - y
+\mathcal{L} = -\log(a^L_c)
 $$
+
+### Mathematical derivation: Why $\delta^L = a^L - y$
+
+We need to compute $\frac{\partial \mathcal{L}}{\partial z^L_j}$ where $z^L$ is the pre-activation (logits) before softmax.
+
+**Step 1: Softmax derivative**
+
+Recall: $a^L_i = \mathrm{softmax}(z^L)_i = \frac{e^{z^L_i}}{\sum_k e^{z^L_k}}$
+
+The derivative of softmax has two cases:
+
+$$
+\frac{\partial a^L_i}{\partial z^L_j} = 
+\begin{cases}
+a^L_i(1 - a^L_i) & \text{if } i = j \\
+-a^L_i a^L_j & \text{if } i \neq j
+\end{cases}
+$$
+
+**Proof:** For $i = j$:
+$$
+\frac{\partial a^L_i}{\partial z^L_i} = \frac{\partial}{\partial z^L_i}\left(\frac{e^{z^L_i}}{\sum_k e^{z^L_k}}\right) = \frac{e^{z^L_i}\sum_k e^{z^L_k} - e^{z^L_i}e^{z^L_i}}{(\sum_k e^{z^L_k})^2} = a^L_i(1-a^L_i)
+$$
+
+For $i \neq j$:
+$$
+\frac{\partial a^L_i}{\partial z^L_j} = \frac{-e^{z^L_i}e^{z^L_j}}{(\sum_k e^{z^L_k})^2} = -a^L_i a^L_j
+$$
+
+**Step 2: Apply chain rule**
+
+For the correct class $c$ (where $y_c = 1$):
+
+$$
+\frac{\partial \mathcal{L}}{\partial z^L_j} = \frac{\partial}{\partial z^L_j}(-\log a^L_c) = -\frac{1}{a^L_c} \frac{\partial a^L_c}{\partial z^L_j}
+$$
+
+**Case 1:** $j = c$ (the correct class)
+$$
+\frac{\partial \mathcal{L}}{\partial z^L_c} = -\frac{1}{a^L_c} \cdot a^L_c(1-a^L_c) = -(1-a^L_c) = a^L_c - 1
+$$
+
+**Case 2:** $j \neq c$ (incorrect class)
+$$
+\frac{\partial \mathcal{L}}{\partial z^L_j} = -\frac{1}{a^L_c} \cdot (-a^L_c a^L_j) = a^L_j
+$$
+
+**Step 3: Combine with one-hot vector**
+
+Since $y_c = 1$ and $y_j = 0$ for $j \neq c$:
+
+$$
+\frac{\partial \mathcal{L}}{\partial z^L_j} = a^L_j - y_j
+$$
+
+In vector form:
+
+$$
+\boxed{\delta^L = \frac{\partial \mathcal{L}}{\partial z^L} = a^L - y}
+$$
+
+This beautiful simplification is why we pair softmax with cross-entropy.
 
 ## Backpropagation
 
-For each layer $l$ from $L$ down to $1$:
+### Mathematical definition of delta
+
+Define $\delta^l$ as the error signal at layer $l$:
 
 $$
-\begin{aligned}
-\frac{\partial \mathcal{L}}{\partial W^l} &= (a^{l-1})^T \delta^l \\
-\frac{\partial \mathcal{L}}{\partial b^l} &= \delta^l
-\end{aligned}
+\delta^l \equiv \frac{\partial \mathcal{L}}{\partial z^l}
 $$
 
-For hidden layers, the error propagates through weights and ReLU:
+where $z^l$ is the pre-activation (before applying ReLU or softmax).
+
+### Derivation 1: Weight gradient formula
+
+**Goal:** Compute $\frac{\partial \mathcal{L}}{\partial W^l_{ij}}$ (gradient for weight from neuron $i$ in layer $l-1$ to neuron $j$ in layer $l$).
+
+**Forward equation:** $z^l_j = \sum_i W^l_{ij} a^{l-1}_i + b^l_j$
+
+By chain rule:
 
 $$
-\delta^{l-1} = \left(\delta^l (W^l)^T\right) \odot \mathrm{ReLU}'(a^{l-1})
+\frac{\partial \mathcal{L}}{\partial W^l_{ij}} = \frac{\partial \mathcal{L}}{\partial z^l_j} \frac{\partial z^l_j}{\partial W^l_{ij}}
 $$
 
-The code applies $\mathrm{ReLU}'$ to the activation $a^{l-1}$, which works because $a^{l-1} > 0$ iff $z^{l-1} > 0$.
+Since $\frac{\partial z^l_j}{\partial W^l_{ij}} = a^{l-1}_i$:
+
+$$
+\frac{\partial \mathcal{L}}{\partial W^l_{ij}} = \delta^l_j \cdot a^{l-1}_i
+$$
+
+In matrix form (outer product):
+
+$$
+\boxed{\frac{\partial \mathcal{L}}{\partial W^l} = (a^{l-1})^T \delta^l}
+$$
+
+**Shapes:** $(n \times 1) \times (1 \times m) = n \times m$ matching $W^l$.
+
+### Derivation 2: Bias gradient formula
+
+**Forward equation:** $z^l_j = \sum_i W^l_{ij} a^{l-1}_i + b^l_j$
+
+By chain rule:
+
+$$
+\frac{\partial \mathcal{L}}{\partial b^l_j} = \frac{\partial \mathcal{L}}{\partial z^l_j} \frac{\partial z^l_j}{\partial b^l_j}
+$$
+
+Since $\frac{\partial z^l_j}{\partial b^l_j} = 1$:
+
+$$
+\boxed{\frac{\partial \mathcal{L}}{\partial b^l} = \delta^l}
+$$
+
+### Derivation 3: Delta propagation formula
+
+**Goal:** Compute $\delta^{l-1} = \frac{\partial \mathcal{L}}{\partial z^{l-1}}$ given $\delta^l = \frac{\partial \mathcal{L}}{\partial z^l}$.
+
+**Forward equations:**
+- $z^l = a^{l-1} W^l + b^l$ (matrix form)
+- $a^{l-1} = \mathrm{ReLU}(z^{l-1})$ (element-wise)
+
+Apply chain rule for element $i$ in layer $l-1$:
+
+$$
+\frac{\partial \mathcal{L}}{\partial z^{l-1}_i} = \sum_j \frac{\partial \mathcal{L}}{\partial z^l_j} \frac{\partial z^l_j}{\partial a^{l-1}_i} \frac{\partial a^{l-1}_i}{\partial z^{l-1}_i}
+$$
+
+**Step 1:** Since $z^l_j = \sum_k W^l_{kj} a^{l-1}_k + b^l_j$:
+
+$$
+\frac{\partial z^l_j}{\partial a^{l-1}_i} = W^l_{ij}
+$$
+
+**Step 2:** Since $a^{l-1}_i = \mathrm{ReLU}(z^{l-1}_i)$:
+
+$$
+\frac{\partial a^{l-1}_i}{\partial z^{l-1}_i} = \mathrm{ReLU}'(z^{l-1}_i) = 
+\begin{cases}
+1 & \text{if } z^{l-1}_i > 0 \\
+0 & \text{otherwise}
+\end{cases}
+$$
+
+**Step 3:** Combine:
+
+$$
+\delta^{l-1}_i = \sum_j \delta^l_j W^l_{ij} \cdot \mathrm{ReLU}'(z^{l-1}_i)
+$$
+
+In matrix form:
+
+$$
+\delta^{l-1} = \left(\delta^l (W^l)^T\right) \odot \mathrm{ReLU}'(z^{l-1})
+$$
+
+**Implementation note:** Since $\mathrm{ReLU}'(z^{l-1}_i) = 1$ iff $z^{l-1}_i > 0$ iff $a^{l-1}_i > 0$, we can equivalently write:
+
+$$
+\boxed{\delta^{l-1} = \left(\delta^l (W^l)^T\right) \odot \mathrm{ReLU}'(a^{l-1})}
+$$
+
+This saves memory since we already stored $a^{l-1}$ during forward pass.
 
 ### Understanding delta (δ): The error signal
 

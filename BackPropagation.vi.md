@@ -39,36 +39,183 @@ $$
 
 ## Hàm mất mát
 
-Với target one-hot $y$, cross-entropy là:
+Với target one-hot $y = [0, \dots, 1, \dots, 0]$, cross-entropy là:
 
 $$
-\mathcal{L} = -\sum_i y_i \log(a^L_i)
+\mathcal{L} = -\sum_{i=1}^K y_i \log(a^L_i)
 $$
 
-Kết hợp với softmax, sai số lớp cuối rút gọn thành:
+Vì chỉ có một phần tử $y_c = 1$ (lớp đúng), công thức trở thành:
 
 $$
-\delta^L = a^L - y
+\mathcal{L} = -\log(a^L_c)
 $$
+
+### Chứng minh toán học: Tại sao $\delta^L = a^L - y$
+
+Ta cần tính $\frac{\partial \mathcal{L}}{\partial z^L_j}$ với $z^L$ là pre-activation (logits) trước softmax.
+
+**Bước 1: Đạo hàm của softmax**
+
+Nhớ lại: $a^L_i = \mathrm{softmax}(z^L)_i = \frac{e^{z^L_i}}{\sum_k e^{z^L_k}}$
+
+Đạo hàm của softmax có hai trường hợp:
+
+$$
+\frac{\partial a^L_i}{\partial z^L_j} = 
+\begin{cases}
+a^L_i(1 - a^L_i) & \text{nếu } i = j \\
+-a^L_i a^L_j & \text{nếu } i \neq j
+\end{cases}
+$$
+
+**Chứng minh:** Với $i = j$:
+$$
+\frac{\partial a^L_i}{\partial z^L_i} = \frac{\partial}{\partial z^L_i}\left(\frac{e^{z^L_i}}{\sum_k e^{z^L_k}}\right) = \frac{e^{z^L_i}\sum_k e^{z^L_k} - e^{z^L_i}e^{z^L_i}}{(\sum_k e^{z^L_k})^2} = a^L_i(1-a^L_i)
+$$
+
+Với $i \neq j$:
+$$
+\frac{\partial a^L_i}{\partial z^L_j} = \frac{-e^{z^L_i}e^{z^L_j}}{(\sum_k e^{z^L_k})^2} = -a^L_i a^L_j
+$$
+
+**Bước 2: Áp dụng quy tắc chuỗi**
+
+Với lớp đúng $c$ (khi $y_c = 1$):
+
+$$
+\frac{\partial \mathcal{L}}{\partial z^L_j} = \frac{\partial}{\partial z^L_j}(-\log a^L_c) = -\frac{1}{a^L_c} \frac{\partial a^L_c}{\partial z^L_j}
+$$
+
+**Trường hợp 1:** $j = c$ (lớp đúng)
+$$
+\frac{\partial \mathcal{L}}{\partial z^L_c} = -\frac{1}{a^L_c} \cdot a^L_c(1-a^L_c) = -(1-a^L_c) = a^L_c - 1
+$$
+
+**Trường hợp 2:** $j \neq c$ (lớp sai)
+$$
+\frac{\partial \mathcal{L}}{\partial z^L_j} = -\frac{1}{a^L_c} \cdot (-a^L_c a^L_j) = a^L_j
+$$
+
+**Bước 3: Kết hợp với vector one-hot**
+
+Vì $y_c = 1$ và $y_j = 0$ với $j \neq c$:
+
+$$
+\frac{\partial \mathcal{L}}{\partial z^L_j} = a^L_j - y_j
+$$
+
+Dạng vector:
+
+$$
+\boxed{\delta^L = \frac{\partial \mathcal{L}}{\partial z^L} = a^L - y}
+$$
+
+Sự rút gọn tuyệt đẹp này là lý do ta ghép softmax với cross-entropy.
 
 ## Backpropagation
 
-Với mỗi lớp $l$ từ $L$ về $1$:
+### Định nghĩa toán học của delta
+
+Định nghĩa $\delta^l$ là tín hiệu lỗi tại lớp $l$:
 
 $$
-\begin{aligned}
-\frac{\partial \mathcal{L}}{\partial W^l} &= (a^{l-1})^T \delta^l \\
-\frac{\partial \mathcal{L}}{\partial b^l} &= \delta^l
-\end{aligned}
+\delta^l \equiv \frac{\partial \mathcal{L}}{\partial z^l}
 $$
 
-Với lớp ẩn, sai số lan truyền ngược qua trọng số và ReLU:
+trong đó $z^l$ là pre-activation (trước khi áp dụng ReLU hay softmax).
+
+### Chứng minh 1: Công thức gradient của trọng số
+
+**Mục tiêu:** Tính $\frac{\partial \mathcal{L}}{\partial W^l_{ij}}$ (gradient cho trọng số từ nơ-ron $i$ ở lớp $l-1$ đến nơ-ron $j$ ở lớp $l$).
+
+**Phương trình forward:** $z^l_j = \sum_i W^l_{ij} a^{l-1}_i + b^l_j$
+
+Theo quy tắc chuỗi:
 
 $$
-\delta^{l-1} = \left(\delta^l (W^l)^T\right) \odot \mathrm{ReLU}'(a^{l-1})
+\frac{\partial \mathcal{L}}{\partial W^l_{ij}} = \frac{\partial \mathcal{L}}{\partial z^l_j} \frac{\partial z^l_j}{\partial W^l_{ij}}
 $$
 
-Code áp dụng $\mathrm{ReLU}'$ trên activation $a^{l-1}$, hợp lệ vì $a^{l-1} > 0$ khi và chỉ khi $z^{l-1} > 0$.
+Vì $\frac{\partial z^l_j}{\partial W^l_{ij}} = a^{l-1}_i$:
+
+$$
+\frac{\partial \mathcal{L}}{\partial W^l_{ij}} = \delta^l_j \cdot a^{l-1}_i
+$$
+
+Dạng ma trận (tích ngoài):
+
+$$
+\boxed{\frac{\partial \mathcal{L}}{\partial W^l} = (a^{l-1})^T \delta^l}
+$$
+
+**Kích thước:** $(n \times 1) \times (1 \times m) = n \times m$ khớp với $W^l$.
+
+### Chứng minh 2: Công thức gradient của bias
+
+**Phương trình forward:** $z^l_j = \sum_i W^l_{ij} a^{l-1}_i + b^l_j$
+
+Theo quy tắc chuỗi:
+
+$$
+\frac{\partial \mathcal{L}}{\partial b^l_j} = \frac{\partial \mathcal{L}}{\partial z^l_j} \frac{\partial z^l_j}{\partial b^l_j}
+$$
+
+Vì $\frac{\partial z^l_j}{\partial b^l_j} = 1$:
+
+$$
+\boxed{\frac{\partial \mathcal{L}}{\partial b^l} = \delta^l}
+$$
+
+### Chứng minh 3: Công thức lan truyền delta
+
+**Mục tiêu:** Tính $\delta^{l-1} = \frac{\partial \mathcal{L}}{\partial z^{l-1}}$ khi biết $\delta^l = \frac{\partial \mathcal{L}}{\partial z^l}$.
+
+**Phương trình forward:**
+- $z^l = a^{l-1} W^l + b^l$ (dạng ma trận)
+- $a^{l-1} = \mathrm{ReLU}(z^{l-1})$ (từng phần tử)
+
+Áp dụng quy tắc chuỗi cho phần tử $i$ ở lớp $l-1$:
+
+$$
+\frac{\partial \mathcal{L}}{\partial z^{l-1}_i} = \sum_j \frac{\partial \mathcal{L}}{\partial z^l_j} \frac{\partial z^l_j}{\partial a^{l-1}_i} \frac{\partial a^{l-1}_i}{\partial z^{l-1}_i}
+$$
+
+**Bước 1:** Vì $z^l_j = \sum_k W^l_{kj} a^{l-1}_k + b^l_j$:
+
+$$
+\frac{\partial z^l_j}{\partial a^{l-1}_i} = W^l_{ij}
+$$
+
+**Bước 2:** Vì $a^{l-1}_i = \mathrm{ReLU}(z^{l-1}_i)$:
+
+$$
+\frac{\partial a^{l-1}_i}{\partial z^{l-1}_i} = \mathrm{ReLU}'(z^{l-1}_i) = 
+\begin{cases}
+1 & \text{nếu } z^{l-1}_i > 0 \\
+0 & \text{ngược lại}
+\end{cases}
+$$
+
+**Bước 3:** Kết hợp:
+
+$$
+\delta^{l-1}_i = \sum_j \delta^l_j W^l_{ij} \cdot \mathrm{ReLU}'(z^{l-1}_i)
+$$
+
+Dạng ma trận:
+
+$$
+\delta^{l-1} = \left(\delta^l (W^l)^T\right) \odot \mathrm{ReLU}'(z^{l-1})
+$$
+
+**Lưu ý triển khai:** Vì $\mathrm{ReLU}'(z^{l-1}_i) = 1$ khi và chỉ khi $z^{l-1}_i > 0$ khi và chỉ khi $a^{l-1}_i > 0$, ta có thể viết tương đương:
+
+$$
+\boxed{\delta^{l-1} = \left(\delta^l (W^l)^T\right) \odot \mathrm{ReLU}'(a^{l-1})}
+$$
+
+Điều này tiết kiệm bộ nhớ vì ta đã lưu $a^{l-1}$ trong forward pass.
 
 ### Hiểu về delta (δ): Tín hiệu sai số
 
