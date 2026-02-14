@@ -23,7 +23,7 @@ int main() {
 	std::vector <Matrix> train_images = ReadImages(train_img_path);
 	std::vector <int> train_labels = ReadLabels(train_lbl_path);
 
-	NeuralNetwork nn({ 784, 64, 10 });
+	NeuralNetwork nn({ 784, 128, 64, 10 });
 	double learning_rate = 0.01;
 	int epochs = 15;
 
