@@ -25,29 +25,108 @@ Matrix NeuralNetwork::FeedForward(const Matrix &input) {
     return res;
 }
 
+Matrix NeuralNetwork::FeedForwardWithCache(const Matrix &input, std::vector <Matrix> &cache) const {
+    Matrix res = input;
+    cache.clear();
+    cache.push_back(res);
+    for (int i = 0; i < weights.size(); i++) {
+        res = (res * weights[i]) + biases[i];
+        if (i != (int)weights.size() - 1) res.ApplyReLU();
+        else res.ApplySoftmax();
+        cache.push_back(res);
+    }
+    return res;
+}
+
 Matrix NeuralNetwork::FeedForward(const std::vector <double> &input) {
     Matrix input_matrix(1, input.size(), input);
     return FeedForward(input_matrix);
 }
 
 void NeuralNetwork::BackPropagate(const Matrix &input, const Matrix &target, double learning_rate) {
-    Matrix output = FeedForward(input);
+    std::vector <Matrix> weight_grads;
+    std::vector <Matrix> bias_grads;
+    ComputeGradients(input, target, weight_grads, bias_grads);
+    for (int layer = (int)weights.size() - 1; layer >= 0; layer--) {
+        weights[layer] = weights[layer] - weight_grads[layer].ScalarMul(learning_rate);
+        biases[layer] = biases[layer] - bias_grads[layer].ScalarMul(learning_rate);
+    }
+}
+
+void NeuralNetwork::InitGradientBuffers(std::vector <Matrix> &weight_grads, std::vector <Matrix> &bias_grads) const {
+    weight_grads.clear();
+    bias_grads.clear();
+    weight_grads.reserve(weights.size());
+    bias_grads.reserve(biases.size());
+    for (size_t i = 0; i < weights.size(); i++) {
+        weight_grads.emplace_back((int)weights[i].GetRows(), (int)weights[i].GetCols());
+        bias_grads.emplace_back((int)biases[i].GetRows(), (int)biases[i].GetCols());
+    }
+}
+
+void NeuralNetwork::ComputeGradients(const Matrix &input, const Matrix &target,
+                                     std::vector <Matrix> &weight_grads, std::vector <Matrix> &bias_grads) const {
+    if (weight_grads.empty() || bias_grads.empty()) {
+        InitGradientBuffers(weight_grads, bias_grads);
+    }
+
+    std::vector <Matrix> cache;
+    Matrix output = FeedForwardWithCache(input, cache);
     Matrix delta = output - target;
 
     for (int layer = (int)weights.size() - 1; layer >= 0; layer--) {
-        Matrix prev_activation = layer_outputs[layer];
-        
-        Matrix weight_gradient = prev_activation.Transpose() * delta;
-        Matrix bias_gradient = delta;
-        
+        Matrix prev_activation = cache[layer];
+
+        weight_grads[layer] = prev_activation.Transpose() * delta;
+        bias_grads[layer] = delta;
+
         if (layer > 0) {
             Matrix prev_derivative = prev_activation;
             prev_derivative.ApplyReLUDerivative();
             delta = (delta * (weights[layer].Transpose())).HadamardMul(prev_derivative);
         }
-        
-        weights[layer] = weights[layer] - weight_gradient.ScalarMul(learning_rate);
-        biases[layer] = biases[layer] - bias_gradient.ScalarMul(learning_rate);
+    }
+}
+
+void NeuralNetwork::BackPropagateBatch(const std::vector <Matrix> &inputs, const std::vector <Matrix> &targets, double learning_rate) {
+    if (inputs.empty()) return;
+    assert(inputs.size() == targets.size() && "Inputs and targets must be the same size.");
+
+    std::vector <Matrix> weight_grads_sum;
+    std::vector <Matrix> bias_grads_sum;
+    InitGradientBuffers(weight_grads_sum, bias_grads_sum);
+
+    #pragma omp parallel
+    {
+        std::vector <Matrix> local_w;
+        std::vector <Matrix> local_b;
+        std::vector <Matrix> sample_w;
+        std::vector <Matrix> sample_b;
+        InitGradientBuffers(local_w, local_b);
+        InitGradientBuffers(sample_w, sample_b);
+
+        #pragma omp for schedule(static)
+        for (int i = 0; i < (int)inputs.size(); i++) {
+            ComputeGradients(inputs[i], targets[i], sample_w, sample_b);
+            for (size_t layer = 0; layer < local_w.size(); layer++) {
+                local_w[layer].AddInPlace(sample_w[layer]);
+                local_b[layer].AddInPlace(sample_b[layer]);
+            }
+        }
+
+        #pragma omp critical
+        {
+            for (size_t layer = 0; layer < weight_grads_sum.size(); layer++) {
+                weight_grads_sum[layer].AddInPlace(local_w[layer]);
+                bias_grads_sum[layer].AddInPlace(local_b[layer]);
+            }
+        }
+    }
+
+    double scale = learning_rate / static_cast<double>(inputs.size());
+    for (int layer = (int)weights.size() - 1; layer >= 0; layer--) {
+        weights[layer] = weights[layer] - weight_grads_sum[layer].ScalarMul(scale);
+        biases[layer] = biases[layer] - bias_grads_sum[layer].ScalarMul(scale);
     }
 }
 

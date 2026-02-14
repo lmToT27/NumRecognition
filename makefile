@@ -1,16 +1,15 @@
 CXX = g++
-INCLUDE = -Isrc/include -Iheader
-LIB = -Lsrc/lib
+CXXFLAGS = -std=c++17 -O3 -march=native -fopenmp
+INCLUDES = -Isrc/include -Iheader
+LDFLAGS = -Lsrc/lib -fopenmp
+INCLUDE = $(INCLUDES)
 
 SRC = $(wildcard src/*.cpp)
-
-# target mặc định
 all:
-	$(CXX) $(INCLUDE) $(LIB) -o main main.cpp $(SRC)
+	$(CXX) $(CXXFLAGS) $(INCLUDE) $(LDFLAGS) -o main main.cpp $(SRC)
 
-# ===== build & run theo tên gõ =====
 %:
-	$(CXX) $(INCLUDE) $(LIB) -o $@ $@.cpp $(SRC)
+	$(CXX) $(CXXFLAGS) $(INCLUDE) $(LDFLAGS) -o $@ $@.cpp $(SRC)
 	.\$@
 
 clean:

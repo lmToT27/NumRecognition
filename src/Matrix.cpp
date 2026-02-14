@@ -1,14 +1,23 @@
 #include "Matrix.h"
 #include <cassert>
+#include <omp.h>
 
 Matrix::Matrix(int rows, int cols, bool rand) {
     this -> rows = rows;
     this -> cols = cols;
     data.resize(rows * cols);
-    for (int i = 0; i < rows; i++) {
-        for (int j = 0; j < cols; j++) {
-            if (rand) (*this)(i, j) = -0.1 + static_cast <double> (std::rand()) / RAND_MAX * 0.2;
-            else (*this)(i, j) = 0.0;
+    if (rand) {
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                (*this)(i, j) = -0.1 + static_cast <double> (std::rand()) / RAND_MAX * 0.2;
+            }
+        }
+    } else {
+        #pragma omp parallel for collapse(2) schedule(static)
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                (*this)(i, j) = 0.0;
+            }
         }
     }
 }
@@ -51,6 +60,7 @@ Matrix Matrix::Flatten(int axis) const {
 Matrix Matrix::operator+(const Matrix &other) const {
     assert(rows == other.rows && cols == other.cols && "Matrix dimensions must match for addition.");
     Matrix res(rows, cols);
+    #pragma omp parallel for collapse(2) schedule(static)
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
             res(i, j) = (*this)(i, j) + other(i, j);
@@ -62,11 +72,15 @@ Matrix Matrix::operator+(const Matrix &other) const {
 Matrix Matrix::operator*(const Matrix &other) const {
     assert(cols == other.rows && "Matrix dimensions are not compatible for multiplication.");
     Matrix res(rows, other.cols);
+    #pragma omp parallel for collapse(2) schedule(static)
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < other.cols; j++) {
+            double sum = 0.0;
+            #pragma omp simd
             for (int k = 0; k < cols; k++) {
-                res(i, j) += (*this)(i, k) * other(k, j);
+                sum += (*this)(i, k) * other(k, j);
             }
+            res(i, j) = sum;
         }
     }
     return res;
@@ -75,6 +89,7 @@ Matrix Matrix::operator*(const Matrix &other) const {
 Matrix Matrix::operator-(const Matrix &other) const {
     assert(rows == other.rows && cols == other.cols && "Matrix dimensions must match for subtraction.");
     Matrix res(rows, cols);
+    #pragma omp parallel for collapse(2) schedule(static)
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
             res(i, j) = (*this)(i, j) - other(i, j);
@@ -83,9 +98,27 @@ Matrix Matrix::operator-(const Matrix &other) const {
     return res;
 }
 
+void Matrix::AddInPlace(const Matrix &other) {
+    assert(rows == other.rows && cols == other.cols && "Matrix dimensions must match for addition.");
+    #pragma omp parallel for collapse(2) schedule(static)
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            (*this)(i, j) += other(i, j);
+        }
+    }
+}
+
+void Matrix::Fill(double value) {
+    #pragma omp parallel for schedule(static)
+    for (int i = 0; i < static_cast<int>(data.size()); i++) {
+        data[i] = value;
+    }
+}
+
 Matrix Matrix::HadamardMul(const Matrix &other) const {
     assert(rows == other.rows && cols == other.cols && "Matrix dimensions must match for Hadamard multiplication.");
     Matrix res(rows, cols);
+    #pragma omp parallel for collapse(2) schedule(static)
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
             res(i, j) = (*this)(i, j) * other(i, j);
@@ -96,6 +129,7 @@ Matrix Matrix::HadamardMul(const Matrix &other) const {
 
 Matrix Matrix::ScalarMul(double scalar) const {
     Matrix res(rows, cols);
+    #pragma omp parallel for collapse(2) schedule(static)
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
             res(i, j) = (*this)(i, j) * scalar;
@@ -106,6 +140,7 @@ Matrix Matrix::ScalarMul(double scalar) const {
 
 Matrix Matrix::Transpose() const {
     Matrix res(cols, rows);
+    #pragma omp parallel for collapse(2) schedule(static)
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
             res(j, i) = (*this)(i, j);
@@ -115,26 +150,30 @@ Matrix Matrix::Transpose() const {
 }
 
 void Matrix::ApplySigmoid() {
-    for (double &val : data) {
-        val = Sigmoid(val);
+    #pragma omp parallel for schedule(static)
+    for (int i = 0; i < static_cast<int>(data.size()); i++) {
+        data[i] = Sigmoid(data[i]);
     }
 }
 
 void Matrix::ApplySigmoidDerivative() {
-    for (double &val : data) {
-        val = SigmoidDerivative(val);
+    #pragma omp parallel for schedule(static)
+    for (int i = 0; i < static_cast<int>(data.size()); i++) {
+        data[i] = SigmoidDerivative(data[i]);
     }
 }
 
 void Matrix::ApplyReLU() {
-    for (double &val : data) {
-        val = ReLU(val);
+    #pragma omp parallel for schedule(static)
+    for (int i = 0; i < static_cast<int>(data.size()); i++) {
+        data[i] = ReLU(data[i]);
     }
 }
 
 void Matrix::ApplyReLUDerivative() {
-    for (double &val : data) {
-        val = ReLUDerivative(val);
+    #pragma omp parallel for schedule(static)
+    for (int i = 0; i < static_cast<int>(data.size()); i++) {
+        data[i] = ReLUDerivative(data[i]);
     }
 }
 

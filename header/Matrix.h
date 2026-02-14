@@ -20,6 +20,8 @@ public:
     Matrix operator+(const Matrix &other) const;
     Matrix operator*(const Matrix &other) const;
     Matrix operator-(const Matrix &other) const;
+    void AddInPlace(const Matrix &other);
+    void Fill(double value);
     Matrix HadamardMul(const Matrix &other) const;
     Matrix ScalarMul(double scalar) const;
     Matrix Transpose() const;
